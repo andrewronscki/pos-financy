@@ -50,3 +50,29 @@ export interface Vote {
   createdAt: string
 }
 
+// Financial types
+export interface Transaction {
+  id: string
+  description: string
+  date: string
+  category: Category
+  type: "income" | "expense"
+  value: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface Category {
+  id: string
+  title: string
+  description?: string
+  icon: string
+  color: string
+  itemCount?: number
+  totalAmount?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type TransactionType = "income" | "expense"
+

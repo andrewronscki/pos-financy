@@ -1,68 +1,85 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../stores/auth"
-import logoIcon from "@/assets/logo-icon.svg"
+import logo from "@/assets/logo.svg"
 import { Button } from "./ui/button"
-import { Lightbulb, LogOut, Users } from "lucide-react"
 import { Avatar, AvatarFallback } from "./ui/avatar"
 
 export function Header() {
   const { user, logout, isAuthenticated } = useAuthStore()
   const location = useLocation()
   const navigate = useNavigate()
-  const isIdeasPage = location.pathname === "/"
-  const isMembersPage = location.pathname === "/members"
+  const isDashboard = location.pathname === "/dashboard" || location.pathname === "/"
+  const isTransactions = location.pathname === "/transactions"
+  const isCategories = location.pathname === "/categories"
+  const isProfile = location.pathname === "/profile"
 
   const handleLogout = () => {
     logout()
     navigate("/login")
   }
 
+  const getInitials = (name?: string) => {
+    if (!name) return "U"
+    const parts = name.split(" ")
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    }
+    return name.charAt(0).toUpperCase()
+  }
+
   return (
-    <div className="w-full px-16 pt-6">
+    <div className="w-full bg-white border-b border-gray-200">
       {isAuthenticated && (
-        <div className="flex justify-between w-full">
-          <div className="min-w-48">
-            <img src={logoIcon} />
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button
-                size="sm"
-                className="gap-2"
-                variant={isIdeasPage ? "default" : "ghost"}
-              >
-                <Lightbulb className="h-4 w-4" />
-                Ideais
-              </Button>
-            </Link>
-            <Link to="/members">
-              <Button
-                size="sm"
-                className="gap-2"
-                variant={isMembersPage ? "default" : "ghost"}
-              >
-                <Users className="h-4 w-4" />
-                Membros
-              </Button>
-            </Link>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <Avatar>
-                <AvatarFallback className="bg-zinc-950 text-primary-foreground">
-                  {user?.name?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">{user?.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {user?.email}
-                </span>
-              </div>
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="grid grid-cols-3 items-center">
+            {/* Logo à esquerda */}
+            <div className="flex justify-start">
+              <Link to="/dashboard">
+                <img src={logo} alt="FINANCY" className="h-8" />
+              </Link>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="w-5 h-5" />
-            </Button>
+            
+            {/* Navegação centralizada */}
+            <nav className="flex items-center justify-center gap-1">
+              <Link to="/dashboard">
+                <Button
+                  size="sm"
+                  variant={isDashboard ? "default" : "ghost"}
+                  className={`text-sm font-normal ${!isDashboard ? "text-gray-600" : ""}`}
+                >
+                  Dashboard
+                </Button>
+              </Link>
+              <Link to="/transactions">
+                <Button
+                  size="sm"
+                  variant={isTransactions ? "default" : "ghost"}
+                  className={`text-sm font-normal ${!isTransactions ? "text-gray-600" : ""}`}
+                >
+                  Transações
+                </Button>
+              </Link>
+              <Link to="/categories">
+                <Button
+                  size="sm"
+                  variant={isCategories ? "default" : "ghost"}
+                  className={`text-sm font-normal ${!isCategories ? "text-gray-600" : ""}`}
+                >
+                  Categorias
+                </Button>
+              </Link>
+            </nav>
+            
+            {/* Avatar à direita */}
+            <div className="flex justify-end">
+              <Link to="/profile">
+                <Avatar className="cursor-pointer">
+                  <AvatarFallback className="bg-gray-300 text-gray-700">
+                    {getInitials(user?.name)}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+            </div>
           </div>
         </div>
       )}
