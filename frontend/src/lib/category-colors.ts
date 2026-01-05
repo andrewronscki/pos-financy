@@ -26,3 +26,31 @@ export function getCategoryColorClasses(color: string): string {
   return colors[color] || "bg-gray-200 text-gray-700"
 }
 
+// Função para obter a cor base da categoria
+export function getCategoryBaseColor(color: string): string {
+  const colors: Record<string, string> = {
+    blue: "text-blue-base",
+    purple: "text-purple-base",
+    orange: "text-orange-base",
+    pink: "text-pink-base",
+    yellow: "text-yellow-base",
+    green: "text-green-base",
+    red: "text-red-base",
+  }
+  return colors[color] || "text-gray-500"
+}
+
+// Função para obter o background light da categoria
+export function getCategoryLightBg(color: string): string {
+  const colors: Record<string, string> = {
+    blue: "bg-blue-light",
+    purple: "bg-purple-light",
+    orange: "bg-orange-light",
+    pink: "bg-pink-light",
+    yellow: "bg-yellow-light",
+    green: "bg-green-light",
+    red: "bg-red-light",
+  }
+  return colors[color] || "bg-gray-200"
+}
+

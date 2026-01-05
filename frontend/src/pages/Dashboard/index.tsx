@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
 import {
   Wallet,
@@ -8,13 +7,16 @@ import {
   ArrowDownCircle,
   Plus,
   ChevronRight,
-  Check,
-  X,
+  CircleArrowUp,
+  CircleArrowDown,
 } from "lucide-react"
 import { Transaction, Category } from "@/types"
 import { CreateTransactionDialog } from "./components/CreateTransactionDialog"
 import { CategoryIcon } from "@/lib/category-icons"
-import { getCategoryColorClasses } from "@/lib/category-colors"
+import {
+  getCategoryBaseColor,
+  getCategoryLightBg,
+} from "@/lib/category-colors"
 
 // Mock data - será substituído por dados reais depois
 const mockTransactions: Transaction[] = [
@@ -67,8 +69,6 @@ const mockCategories: Category[] = [
   { id: "4", title: "Entretenimento", icon: "ticket", color: "pink", itemCount: 2, totalAmount: 186.2 },
   { id: "5", title: "Utilidades", icon: "house", color: "yellow", itemCount: 7, totalAmount: 245.8 },
 ]
-
-const getCategoryColor = getCategoryColorClasses
 
 export function Dashboard() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -130,112 +130,137 @@ export function Dashboard() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Transações Recentes */}
-          <Card className="rounded-lg shadow-md lg:col-span-2 h-full flex flex-col">
-            <CardContent className="p-6 flex flex-col flex-1">
+          <Card className="rounded-lg shadow-md lg:col-span-2">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-gray-800">
+                <h2 className="text-xs font-medium text-gray-500">
                   TRANSAÇÕES RECENTES
                 </h2>
                 <Link
                   to="/transactions"
-                  className="text-sm text-brand-base hover:underline flex items-center gap-1"
+                  className="text-sm font-medium text-brand-base hover:underline flex items-center gap-1"
                 >
                   Ver todas <ChevronRight className="h-4 w-4" />
                 </Link>
               </div>
 
-              <div className="space-y-4 flex-1">
+              <div className="-mx-6">
+                {/* Divisão superior */}
+                <div className="border-t border-gray-200" />
+                
                 {mockTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div>
-                        <CategoryIcon iconName={transaction.category.icon} className="h-6 w-6 text-gray-500" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-800">
-                          {transaction.description}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-sm text-gray-500">
-                            {transaction.date}
-                          </span>
-                          <span
-                            className={`text-xs px-2 py-0.5 rounded-full ${getCategoryColor(
+                  <div key={transaction.id}>
+                    <div className="flex items-center py-3 px-6">
+                      {/* Ícone da categoria */}
+                      <div className="flex-shrink-0 mr-3">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${getCategoryLightBg(
+                            transaction.category.color
+                          )}`}
+                        >
+                          <CategoryIcon
+                            iconName={transaction.category.icon}
+                            className={`h-4 w-4 ${getCategoryBaseColor(
                               transaction.category.color
                             )}`}
-                          >
-                            {transaction.category.title}
-                          </span>
+                          />
                         </div>
                       </div>
+
+                      {/* Descrição */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-medium text-gray-800">
+                          {transaction.description}
+                        </p>
+                        <p className="text-sm font-normal text-gray-600 mt-1">
+                          {transaction.date}
+                        </p>
+                      </div>
+
+                      {/* Tag da categoria */}
+                      <div className="flex-shrink-0 mx-3">
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${getCategoryLightBg(
+                            transaction.category.color
+                          )} ${getCategoryBaseColor(transaction.category.color)}`}
+                        >
+                          {transaction.category.title}
+                        </span>
+                      </div>
+
+                      {/* Valor e ícone */}
+                      <div className="flex items-center flex-shrink-0">
+                        <span className="text-sm font-semibold text-gray-800">
+                          {transaction.type === "income" ? "+" : "-"}{" "}
+                          {formatCurrency(transaction.value)}
+                        </span>
+                        {transaction.type === "income" ? (
+                          <CircleArrowUp className="h-4 w-4 text-brand-base ml-2" />
+                        ) : (
+                          <CircleArrowDown className="h-4 w-4 text-red-base ml-2" />
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`font-semibold ${
-                          transaction.type === "income"
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {transaction.type === "income" ? "+" : "-"}{" "}
-                        {formatCurrency(transaction.value)}
-                      </span>
-                      {transaction.type === "income" ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <X className="h-4 w-4 text-red-600" />
-                      )}
-                    </div>
+                    {/* Divisão entre transações */}
+                    <div className="border-t border-gray-200" />
                   </div>
                 ))}
               </div>
 
-              <Button
-                className="w-full mt-6 bg-brand-base hover:bg-brand-dark"
-                onClick={() => setIsCreateDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nova transação
-              </Button>
+              <div className="mt-6 flex justify-center">
+                <button
+                  className="flex items-center gap-2 text-sm font-medium text-brand-base hover:underline"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 text-brand-base" />
+                  Nova transação
+                </button>
+              </div>
             </CardContent>
           </Card>
 
           {/* Categorias */}
-          <Card className="rounded-lg shadow-md h-full flex flex-col">
-            <CardContent className="p-6 flex flex-col flex-1">
+          <Card className="rounded-lg shadow-md">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-gray-800">CATEGORIAS</h2>
+                <h2 className="text-xs font-medium text-gray-500">CATEGORIAS</h2>
                 <Link
                   to="/categories"
-                  className="text-sm text-brand-base hover:underline flex items-center gap-1"
+                  className="text-sm font-medium text-brand-base hover:underline flex items-center gap-1"
                 >
                   Gerenciar <ChevronRight className="h-4 w-4" />
                 </Link>
               </div>
 
-              <div className="space-y-3">
+              <div className="-mx-6">
+                {/* Divisão superior - separa título/gerenciar da listagem */}
+                <div className="border-t border-gray-200" />
+                
                 {mockCategories.map((category) => (
                   <div
                     key={category.id}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between py-3 px-6"
                   >
-                    <div className="flex items-center gap-3">
+                    {/* Tag da categoria */}
+                    <div className="flex-shrink-0">
                       <span
-                        className={`text-xs px-3 py-1 rounded-full font-medium ${getCategoryColor(
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getCategoryLightBg(
                           category.color
-                        )}`}
+                        )} ${getCategoryBaseColor(category.color)}`}
                       >
                         {category.title}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>{category.itemCount} itens</span>
-                      <span className="font-semibold text-gray-800">
+                    
+                    {/* Número de itens */}
+                    <div className="flex items-center gap-4 flex-1 justify-end">
+                      <span className="text-sm font-normal text-gray-600">
+                        {category.itemCount} itens
+                      </span>
+                      {/* Valor */}
+                      <span className="text-sm font-semibold text-gray-800">
                         {formatCurrency(category.totalAmount || 0)}
                       </span>
                     </div>

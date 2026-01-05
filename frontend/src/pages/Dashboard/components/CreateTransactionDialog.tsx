@@ -7,10 +7,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { InputField } from "@/components/ui/input-field"
-import { SelectField } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { ArrowDownCircle, ArrowUpCircle, X } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle } from "lucide-react"
 import { TransactionType } from "@/types"
 
 interface CreateTransactionDialogProps {
@@ -45,95 +45,117 @@ export function CreateTransactionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nova transação</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base font-semibold text-gray-800">
+            Nova transação
+          </DialogTitle>
+          <DialogDescription className="text-sm font-normal text-gray-600">
             Registre sua despesa ou receita
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="py-4">
           {/* Tipo de Transação */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 p-1 rounded-xl border border-gray-200 mb-6">
             <Button
               type="button"
-              variant={type === "expense" ? "default" : "outline"}
+              variant="ghost"
               className={`flex-1 ${
                 type === "expense"
-                  ? "border-red-500 bg-white text-red-600 hover:bg-red-50"
-                  : ""
+                  ? "border-red-base bg-white hover:bg-red-50 border"
+                  : "border-transparent"
               }`}
               onClick={() => setType("expense")}
             >
-              <ArrowDownCircle className="h-4 w-4 mr-2" />
+              <ArrowDownCircle className={`h-4 w-4 mr-2 ${
+                type === "expense" ? "text-red-base" : "text-gray-500"
+              }`} />
               Despesa
             </Button>
             <Button
               type="button"
-              variant={type === "income" ? "default" : "outline"}
+              variant="ghost"
               className={`flex-1 ${
                 type === "income"
-                  ? "border-green-500 bg-white text-green-600 hover:bg-green-50"
-                  : ""
+                  ? "border-brand-base bg-white hover:bg-brand-light border"
+                  : "border-transparent"
               }`}
               onClick={() => setType("income")}
             >
-              <ArrowUpCircle className="h-4 w-4 mr-2" />
+              <ArrowUpCircle className={`h-4 w-4 mr-2 ${
+                type === "income" ? "text-brand-base" : "text-gray-500"
+              }`} />
               Receita
             </Button>
           </div>
 
           {/* Campos do Formulário */}
-          <InputField
-            id="description"
-            label="Descrição"
-            placeholder="Ex. Almoço no restaurante"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <div className="space-y-2 mb-6">
+            <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+              Descrição
+            </Label>
+            <Input
+              id="description"
+              placeholder="Ex. Almoço no restaurante"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
 
-          <InputField
-            id="date"
-            label="Data"
-            type="date"
-            placeholder="Selecione"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-
-          <div className="space-y-2">
-            <Label htmlFor="value">Valor</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                R$
-              </span>
-              <input
-                id="value"
-                type="text"
-                className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent pl-12 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:border-brand-base"
-                placeholder="0,00"
-                value={value}
-                onChange={(e) => setValue(formatCurrencyInput(e.target.value))}
+          {/* Data e Valor na mesma linha */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="space-y-2">
+              <Label htmlFor="date" className="text-sm font-medium text-gray-700">
+                Data
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                placeholder="Selecione"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="value" className="text-sm font-medium text-gray-700">
+                Valor
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                  R$
+                </span>
+                <Input
+                  id="value"
+                  type="text"
+                  className="pl-12"
+                  placeholder="0,00"
+                  value={value}
+                  onChange={(e) => setValue(formatCurrencyInput(e.target.value))}
+                />
+              </div>
             </div>
           </div>
 
-          <SelectField
-            id="category"
-            label="Categoria"
-            value={category}
-            onChange={setCategory}
-            placeholder="Selecione"
-            options={[
-              { value: "1", label: "Alimentação" },
-              { value: "2", label: "Transporte" },
-              { value: "3", label: "Mercado" },
-              { value: "4", label: "Entretenimento" },
-              { value: "5", label: "Utilidades" },
-            ]}
-          />
+          <div className="space-y-2 mb-6">
+            <Label htmlFor="category" className="text-sm font-medium text-gray-700">
+              Categoria
+            </Label>
+            <Select
+              value={category}
+              onChange={setCategory}
+              placeholder="Selecione"
+              options={[
+                { value: "1", label: "Alimentação" },
+                { value: "2", label: "Transporte" },
+                { value: "3", label: "Mercado" },
+                { value: "4", label: "Entretenimento" },
+                { value: "5", label: "Utilidades" },
+              ]}
+            />
+          </div>
 
           <Button
-            className="w-full bg-brand-base hover:bg-brand-dark"
+            className="w-full bg-brand-base hover:bg-brand-dark rounded-[8px] text-base font-medium h-10"
             onClick={handleSave}
           >
             Salvar
