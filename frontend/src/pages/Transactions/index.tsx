@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { Transaction, Category } from "@/types"
 import { CreateTransactionDialog } from "../Dashboard/components/CreateTransactionDialog"
+import { EditTransactionDialog } from "../Dashboard/components/EditTransactionDialog"
 import { CategoryIcon } from "@/lib/category-icons"
 import { getCategoryBaseColor, getCategoryLightBg } from "@/lib/category-colors"
 import { LIST_TRANSACTIONS } from "@/lib/graphql/queries/Transactions"
@@ -33,6 +34,8 @@ type CategoriesQueryData = {
 
 export function Transactions() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
@@ -345,7 +348,13 @@ export function Transactions() {
                           >
                             <Trash className="h-4 w-4 text-danger" />
                           </button>
-                          <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50">
+                          <button 
+                            onClick={() => {
+                              setSelectedTransaction(transaction)
+                              setIsEditDialogOpen(true)
+                            }}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50"
+                          >
                             <PenSquare className="h-4 w-4 text-gray-700" />
                           </button>
                         </div>
@@ -409,6 +418,18 @@ export function Transactions() {
       <CreateTransactionDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+        onSuccess={() => {
+          refetchTransactions()
+        }}
+      />
+
+      <EditTransactionDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open)
+          if (!open) setSelectedTransaction(null)
+        }}
+        transaction={selectedTransaction}
         onSuccess={() => {
           refetchTransactions()
         }}

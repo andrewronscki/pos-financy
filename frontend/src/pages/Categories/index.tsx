@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Plus, Trash, PenSquare, Tag, ArrowUpDown } from "lucide-react"
 import { Category } from "@/types"
 import { CreateCategoryDialog } from "./components/CreateCategoryDialog"
+import { EditCategoryDialog } from "./components/EditCategoryDialog"
 import { CategoryIcon } from "@/lib/category-icons"
 import { getCategoryBaseColor, getCategoryLightBg } from "@/lib/category-colors"
 import { LIST_CATEGORIES } from "@/lib/graphql/queries/Categories"
@@ -25,6 +26,8 @@ type TransactionsQueryData = {
 
 export function Categories() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
 
   const { data: categoriesData, loading: categoriesLoading, refetch: refetchCategories } = useQuery<CategoriesQueryData>(LIST_CATEGORIES)
   const { data: transactionsData, loading: transactionsLoading } = useQuery<TransactionsQueryData>(LIST_TRANSACTIONS)
@@ -183,7 +186,13 @@ export function Categories() {
                       >
                       <Trash className="h-4 w-4 text-danger" />
                     </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50">
+                    <button 
+                      onClick={() => {
+                        setSelectedCategory(category)
+                        setIsEditDialogOpen(true)
+                      }}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50"
+                    >
                       <PenSquare className="h-4 w-4 text-gray-700" />
                     </button>
                   </div>
@@ -222,6 +231,18 @@ export function Categories() {
       <CreateCategoryDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+        onSuccess={() => {
+          refetchCategories()
+        }}
+      />
+
+      <EditCategoryDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open)
+          if (!open) setSelectedCategory(null)
+        }}
+        category={selectedCategory}
         onSuccess={() => {
           refetchCategories()
         }}
