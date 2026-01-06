@@ -141,7 +141,7 @@ export function Categories() {
                 <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
                   <CategoryIcon
                     iconName={mostUsedCategory.icon}
-                    className="h-6 w-6 text-blue-base"
+                    className={`h-6 w-6 ${getCategoryBaseColor(mostUsedCategory.color || 'blue')}`}
                   />
                 </div>
                 <div className="flex flex-col">
