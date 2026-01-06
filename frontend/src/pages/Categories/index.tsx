@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useQuery, useMutation } from "@apollo/client/react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash, PenSquare, Tag, ArrowUpDown } from "lucide-react"
@@ -6,87 +7,77 @@ import { Category } from "@/types"
 import { CreateCategoryDialog } from "./components/CreateCategoryDialog"
 import { CategoryIcon } from "@/lib/category-icons"
 import { getCategoryBaseColor, getCategoryLightBg } from "@/lib/category-colors"
+import { LIST_CATEGORIES } from "@/lib/graphql/queries/Categories"
+import { LIST_TRANSACTIONS } from "@/lib/graphql/queries/Transactions"
+import { DELETE_CATEGORY } from "@/lib/graphql/mutations/Categories"
+import { toast } from "sonner"
 
-// Mock data
-const mockCategories: Category[] = [
-  {
-    id: "1",
-    title: "Alimentação",
-    description: "Restaurantes, delivery e refeições",
-    icon: "utensils",
-    color: "blue",
-    itemCount: 12,
-  },
-  {
-    id: "2",
-    title: "Entretenimento",
-    description: "Cinema, jogos e lazer",
-    icon: "ticket",
-    color: "pink",
-    itemCount: 2,
-  },
-  {
-    id: "3",
-    title: "Investimento",
-    description: "Aplicações e retornos financeiros",
-    icon: "briefcase-business",
-    color: "green",
-    itemCount: 1,
-  },
-  {
-    id: "4",
-    title: "Mercado",
-    description: "Compras de supermercado e mantimentos",
-    icon: "shopping-cart",
-    color: "orange",
-    itemCount: 3,
-  },
-  {
-    id: "5",
-    title: "Salário",
-    description: "Renda mensal e bonificações",
-    icon: "briefcase-business",
-    color: "green",
-    itemCount: 3,
-  },
-  {
-    id: "6",
-    title: "Saúde",
-    description: "Medicamentos, consultas e exames",
-    icon: "heart-pulse",
-    color: "red",
-    itemCount: 0,
-  },
-  {
-    id: "7",
-    title: "Transporte",
-    description: "Gasolina, transporte público e viagens",
-    icon: "car-front",
-    color: "purple",
-    itemCount: 8,
-  },
-  {
-    id: "8",
-    title: "Utilidades",
-    description: "Energia, água, internet e telefone",
-    icon: "house",
-    color: "yellow",
-    itemCount: 7,
-  },
-]
+type CategoriesQueryData = {
+  listCategories: Category[]
+}
 
+type TransactionsQueryData = {
+  listTransactions: Array<{
+    id: string
+    categoryId: string
+  }>
+}
 
 export function Categories() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
-  const totalCategories = mockCategories.length
-  const totalTransactions = mockCategories.reduce(
+  const { data: categoriesData, loading: categoriesLoading, refetch: refetchCategories } = useQuery<CategoriesQueryData>(LIST_CATEGORIES)
+  const { data: transactionsData, loading: transactionsLoading } = useQuery<TransactionsQueryData>(LIST_TRANSACTIONS)
+  
+  const [deleteCategory] = useMutation(DELETE_CATEGORY, {
+    onCompleted: () => {
+      toast.success("Categoria deletada com sucesso!")
+      refetchCategories()
+    },
+    onError: (error) => {
+      toast.error("Erro ao deletar categoria: " + error.message)
+    },
+  })
+
+  const categoriesWithCounts = useMemo(() => {
+    if (!categoriesData?.listCategories || !transactionsData?.listTransactions) {
+      return []
+    }
+
+    const transactionCounts = transactionsData.listTransactions.reduce((acc, transaction) => {
+      acc[transaction.categoryId] = (acc[transaction.categoryId] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    return categoriesData.listCategories.map((category) => ({
+      ...category,
+      itemCount: transactionCounts[category.id] || 0,
+    }))
+  }, [categoriesData, transactionsData])
+
+  const totalCategories = categoriesWithCounts.length
+  const totalTransactions = categoriesWithCounts.reduce(
     (sum, cat) => sum + (cat.itemCount || 0),
     0
   )
-  const mostUsedCategory = mockCategories.reduce((prev, current) =>
-    (prev.itemCount || 0) > (current.itemCount || 0) ? prev : current
+  const mostUsedCategory = categoriesWithCounts.reduce((prev, current) =>
+    (prev.itemCount || 0) > (current.itemCount || 0) ? prev : current,
+    categoriesWithCounts[0] || { title: "N/A", icon: "tag", itemCount: 0 }
   )
+
+  const handleDeleteCategory = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja deletar esta categoria?")) {
+      await deleteCategory({ variables: { id } })
+    }
+  }
+
+  if (categoriesLoading || transactionsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 flex items-center justify-center">
+        <p className="text-gray-600">Carregando...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
@@ -165,7 +156,12 @@ export function Categories() {
 
         {/* Categories Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {mockCategories.map((category) => (
+          {categoriesWithCounts.length === 0 ? (
+            <div className="col-span-full text-center py-8">
+              <p className="text-gray-600">Nenhuma categoria encontrada</p>
+            </div>
+          ) : (
+            categoriesWithCounts.map((category) => (
             <Card key={category.id} className="rounded-xl border border-gray-200 h-full flex flex-col">
               <CardContent className="p-6 flex flex-col flex-1">
                 {/* Primeira linha: Ícone à esquerda, botões à direita */}
@@ -181,7 +177,10 @@ export function Categories() {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50">
+                      <button 
+                        onClick={() => handleDeleteCategory(category.id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50"
+                      >
                       <Trash className="h-4 w-4 text-danger" />
                     </button>
                     <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50">
@@ -196,7 +195,7 @@ export function Categories() {
                     {category.title}
                   </h3>
                   <p className="text-sm font-normal text-gray-600">
-                    {category.description}
+                      {category.description || "Sem descrição"}
                   </p>
                 </div>
 
@@ -215,13 +214,17 @@ export function Categories() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
       <CreateCategoryDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+        onSuccess={() => {
+          refetchCategories()
+        }}
       />
     </div>
   )

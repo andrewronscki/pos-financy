@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useQuery, useMutation } from "@apollo/client/react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { InputField } from "@/components/ui/input-field"
@@ -13,88 +14,58 @@ import {
   CircleArrowUp,
   CircleArrowDown,
 } from "lucide-react"
-import { Transaction } from "@/types"
+import { Transaction, Category } from "@/types"
 import { CreateTransactionDialog } from "../Dashboard/components/CreateTransactionDialog"
 import { CategoryIcon } from "@/lib/category-icons"
 import { getCategoryBaseColor, getCategoryLightBg } from "@/lib/category-colors"
+import { LIST_TRANSACTIONS } from "@/lib/graphql/queries/Transactions"
+import { LIST_CATEGORIES } from "@/lib/graphql/queries/Categories"
+import { DELETE_TRANSACTION } from "@/lib/graphql/mutations/Transactions"
+import { toast } from "sonner"
 
-// Mock data
-const mockTransactions: Transaction[] = [
-  {
-    id: "1",
-    description: "Jantar no Restaurante",
-    date: "30/11/25",
-    category: { id: "1", title: "Alimentação", icon: "utensils", color: "blue" },
-    type: "expense",
-    value: 89.5,
-  },
-  {
-    id: "2",
-    description: "Posto de Gasolina",
-    date: "29/11/25",
-    category: { id: "2", title: "Transporte", icon: "car-front", color: "purple" },
-    type: "expense",
-    value: 100.0,
-  },
-  {
-    id: "3",
-    description: "Compras no Mercado",
-    date: "28/11/25",
-    category: { id: "3", title: "Mercado", icon: "shopping-cart", color: "orange" },
-    type: "expense",
-    value: 156.8,
-  },
-  {
-    id: "4",
-    description: "Retorno de Investimento",
-    date: "26/11/25",
-    category: { id: "4", title: "Investimento", icon: "briefcase-business", color: "green" },
-    type: "income",
-    value: 340.25,
-  },
-  {
-    id: "5",
-    description: "Aluguel",
-    date: "25/11/25",
-    category: { id: "5", title: "Utilidades", icon: "house", color: "yellow" },
-    type: "expense",
-    value: 1700.0,
-  },
-  {
-    id: "6",
-    description: "Freelance",
-    date: "24/11/25",
-    category: { id: "6", title: "Salário", icon: "briefcase-business", color: "green" },
-    type: "income",
-    value: 2500.0,
-  },
-  {
-    id: "7",
-    description: "Compras Jantar",
-    date: "23/11/25",
-    category: { id: "3", title: "Mercado", icon: "shopping-cart", color: "orange" },
-    type: "expense",
-    value: 150.0,
-  },
-  {
-    id: "8",
-    description: "Cinema",
-    date: "22/11/25",
-    category: { id: "7", title: "Entretenimento", icon: "ticket", color: "pink" },
-    type: "expense",
-    value: 88.0,
-  },
-]
+type TransactionsQueryData = {
+  listTransactions: Transaction[]
+}
 
+type CategoriesQueryData = {
+  listCategories: Category[]
+}
 
 export function Transactions() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
-  const [periodFilter, setPeriodFilter] = useState("november-2025")
+  const [periodFilter, setPeriodFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  const { data: transactionsData, loading: transactionsLoading, refetch: refetchTransactions } = useQuery<TransactionsQueryData>(LIST_TRANSACTIONS)
+  const { data: categoriesData, loading: categoriesLoading } = useQuery<CategoriesQueryData>(LIST_CATEGORIES)
+
+  const [deleteTransaction] = useMutation(DELETE_TRANSACTION, {
+    onCompleted: () => {
+      toast.success("Transação deletada com sucesso!")
+      refetchTransactions()
+    },
+    onError: (error) => {
+      toast.error("Erro ao deletar transação: " + error.message)
+    },
+  })
+
+  const transactionsWithCategories = useMemo(() => {
+    if (!transactionsData?.listTransactions || !categoriesData?.listCategories) {
+      return []
+    }
+
+    return transactionsData.listTransactions.map((transaction) => {
+      const category = categoriesData.listCategories.find((cat) => cat.id === transaction.categoryId)
+      return {
+        ...transaction,
+        category: category || { id: transaction.categoryId, title: "Sem categoria", icon: "tag", color: "gray" },
+      }
+    })
+  }, [transactionsData, categoriesData])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -103,21 +74,84 @@ export function Transactions() {
     }).format(value)
   }
 
-  const filteredTransactions = mockTransactions.filter((transaction) => {
-    const matchesSearch = transaction.description
-      .toLowerCase()
-      .includes(search.toLowerCase())
-    const matchesType = typeFilter === "all" || transaction.type === typeFilter
-    const matchesCategory =
-      categoryFilter === "all" || transaction.category.id === categoryFilter
-    return matchesSearch && matchesType && matchesCategory
-  })
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })
+  }
+
+  const filteredTransactions = useMemo(() => {
+    return transactionsWithCategories.filter((transaction) => {
+      const matchesSearch = transaction.description
+        .toLowerCase()
+        .includes(search.toLowerCase())
+      const matchesType = typeFilter === "all" || transaction.type === typeFilter
+      const matchesCategory =
+        categoryFilter === "all" || transaction.categoryId === categoryFilter
+      
+      let matchesPeriod = true
+      if (periodFilter !== "all") {
+        const transactionDate = new Date(transaction.date)
+        const [month, year] = periodFilter.split("-")
+        matchesPeriod =
+          transactionDate.getMonth() + 1 === parseInt(month) &&
+          transactionDate.getFullYear() === parseInt(year)
+      }
+      
+      return matchesSearch && matchesType && matchesCategory && matchesPeriod
+    })
+  }, [transactionsWithCategories, search, typeFilter, categoryFilter, periodFilter])
 
   const totalResults = filteredTransactions.length
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex)
   const totalPages = Math.ceil(totalResults / itemsPerPage)
+
+  const handleDeleteTransaction = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja deletar esta transação?")) {
+      await deleteTransaction({ variables: { id } })
+    }
+  }
+
+  // Gerar opções de período dinamicamente
+  const periodOptions = useMemo(() => {
+    if (!transactionsData?.listTransactions) return []
+    
+    const periods = new Set<string>()
+    transactionsData.listTransactions.forEach((transaction) => {
+      const date = new Date(transaction.date)
+      const month = (date.getMonth() + 1).toString().padStart(2, "0")
+      const year = date.getFullYear()
+      periods.add(`${month}-${year}`)
+    })
+    
+    return Array.from(periods)
+      .sort((a, b) => {
+        const [monthA, yearA] = a.split("-").map(Number)
+        const [monthB, yearB] = b.split("-").map(Number)
+        if (yearA !== yearB) return yearB - yearA
+        return monthB - monthA
+      })
+      .map((period) => {
+        const [month, year] = period.split("-")
+        const monthNames = [
+          "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+          "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ]
+        return {
+          value: period,
+          label: `${monthNames[parseInt(month) - 1]} / ${year}`,
+        }
+      })
+  }, [transactionsData])
+
+  if (transactionsLoading || categoriesLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 flex items-center justify-center">
+        <p className="text-gray-600">Carregando...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
@@ -159,8 +193,8 @@ export function Transactions() {
                 placeholder="Todos"
                 options={[
                   { value: "all", label: "Todos" },
-                  { value: "income", label: "Entrada" },
-                  { value: "expense", label: "Saída" },
+                  { value: "credit", label: "Entrada" },
+                  { value: "debit", label: "Saída" },
                 ]}
               />
               <SelectField
@@ -171,13 +205,10 @@ export function Transactions() {
                 placeholder="Todas"
                 options={[
                   { value: "all", label: "Todas" },
-                  { value: "1", label: "Alimentação" },
-                  { value: "2", label: "Transporte" },
-                  { value: "3", label: "Mercado" },
-                  { value: "4", label: "Investimento" },
-                  { value: "5", label: "Utilidades" },
-                  { value: "6", label: "Salário" },
-                  { value: "7", label: "Entretenimento" },
+                  ...(categoriesData?.listCategories.map((cat) => ({
+                    value: cat.id,
+                    label: cat.title,
+                  })) || []),
                 ]}
               />
               <SelectField
@@ -185,10 +216,10 @@ export function Transactions() {
                 label="Período"
                 value={periodFilter}
                 onChange={setPeriodFilter}
-                placeholder="Selecione"
+                placeholder="Todos"
                 options={[
-                  { value: "november-2025", label: "Novembro / 2025" },
-                  { value: "december-2025", label: "Dezembro / 2025" },
+                  { value: "all", label: "Todos" },
+                  ...periodOptions,
                 ]}
               />
             </div>
@@ -237,87 +268,95 @@ export function Transactions() {
 
               {/* Corpo da tabela */}
               <div>
-                {paginatedTransactions.map((transaction, index) => (
-                  <div key={transaction.id}>
-                    <div className="flex items-center py-3 px-6">
-                      {/* Descrição */}
-                      <div className="flex items-center flex-[2]">
-                        <div className="flex-shrink-0 mr-3">
-                          <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center ${getCategoryLightBg(
-                              transaction.category.color
-                            )}`}
-                          >
-                            <CategoryIcon
-                              iconName={transaction.category.icon}
-                              className={`h-4 w-4 ${getCategoryBaseColor(
+                {paginatedTransactions.length === 0 ? (
+                  <div className="py-8 text-center text-gray-600">
+                    <p>Nenhuma transação encontrada</p>
+                  </div>
+                ) : (
+                  paginatedTransactions.map((transaction, index) => (
+                    <div key={transaction.id}>
+                      <div className="flex items-center py-3 px-6">
+                        {/* Descrição */}
+                        <div className="flex items-center flex-[2]">
+                          <div className="flex-shrink-0 mr-3">
+                            <div
+                              className={`w-10 h-10 rounded-lg flex items-center justify-center ${getCategoryLightBg(
                                 transaction.category.color
                               )}`}
-                            />
+                            >
+                              <CategoryIcon
+                                iconName={transaction.category.icon}
+                                className={`h-4 w-4 ${getCategoryBaseColor(
+                                  transaction.category.color
+                                )}`}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-base font-medium text-gray-800">
+                              {transaction.description}
+                            </p>
                           </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-medium text-gray-800">
-                            {transaction.description}
-                          </p>
+
+                        {/* Data */}
+                        <div className="flex-1">
+                          <span className="text-sm font-normal text-gray-600">
+                            {formatDate(transaction.date)}
+                          </span>
+                        </div>
+
+                        {/* Categoria */}
+                        <div className="flex-1">
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-medium ${getCategoryLightBg(
+                              transaction.category.color
+                            )} ${getCategoryBaseColor(transaction.category.color)}`}
+                          >
+                            {transaction.category.title}
+                          </span>
+                        </div>
+
+                        {/* Tipo */}
+                        <div className="flex items-center flex-1">
+                          {transaction.type === "credit" ? (
+                            <CircleArrowUp className="h-4 w-4 text-brand-base mr-2" />
+                          ) : (
+                            <CircleArrowDown className="h-4 w-4 text-red-base mr-2" />
+                          )}
+                          <span className="text-sm font-medium text-gray-800">
+                            {transaction.type === "credit" ? "Entrada" : "Saída"}
+                          </span>
+                        </div>
+
+                        {/* Valor */}
+                        <div className="flex items-center flex-1">
+                          <span className="text-sm font-semibold text-gray-800">
+                            {transaction.type === "credit" ? "+" : "-"}{" "}
+                            {formatCurrency(transaction.amount)}
+                          </span>
+                        </div>
+
+                        {/* Ações */}
+                        <div className="flex items-center gap-2 flex-1">
+                          <button 
+                            onClick={() => handleDeleteTransaction(transaction.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50"
+                          >
+                            <Trash className="h-4 w-4 text-danger" />
+                          </button>
+                          <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50">
+                            <PenSquare className="h-4 w-4 text-gray-700" />
+                          </button>
                         </div>
                       </div>
-
-                      {/* Data */}
-                      <div className="flex-1">
-                        <span className="text-sm font-normal text-gray-600">
-                          {transaction.date}
-                        </span>
-                      </div>
-
-                      {/* Categoria */}
-                      <div className="flex-1">
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium ${getCategoryLightBg(
-                            transaction.category.color
-                          )} ${getCategoryBaseColor(transaction.category.color)}`}
-                        >
-                          {transaction.category.title}
-                        </span>
-                      </div>
-
-                      {/* Tipo */}
-                      <div className="flex items-center flex-1">
-                        {transaction.type === "income" ? (
-                          <CircleArrowUp className="h-4 w-4 text-brand-base mr-2" />
-                        ) : (
-                          <CircleArrowDown className="h-4 w-4 text-red-base mr-2" />
-                        )}
-                        <span className="text-sm font-medium text-gray-800">
-                          {transaction.type === "income" ? "Entrada" : "Saída"}
-                        </span>
-                      </div>
-
-                      {/* Valor */}
-                      <div className="flex items-center flex-1">
-                        <span className="text-sm font-semibold text-gray-800">
-                          {transaction.type === "income" ? "+" : "-"}{" "}
-                          {formatCurrency(transaction.value)}
-                        </span>
-                      </div>
-
-                      {/* Ações */}
-                      <div className="flex items-center gap-2 flex-1">
-												<button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50">
-                          <Trash className="h-4 w-4 text-danger" />
-                        </button>
-											  <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50">
-                          <PenSquare className="h-4 w-4 text-gray-700" />
-                        </button>
-                      
-                      </div>
+                      {/* Divisão entre transações */}
+                      {index < paginatedTransactions.length - 1 && (
+                        <div className="border-t border-gray-200" />
+                      )}
                     </div>
-                    {/* Divisão entre transações */}
-                    {index < paginatedTransactions.length - 1 && (
-                      <div className="border-t border-gray-200" />
-                    )}
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -370,6 +409,9 @@ export function Transactions() {
       <CreateTransactionDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+        onSuccess={() => {
+          refetchTransactions()
+        }}
       />
     </div>
   )

@@ -20,6 +20,10 @@ export interface LoginInput {
   password: string
 }
 
+export interface UpdateUserInput {
+  name?: string
+}
+
 export interface Idea {
   id: string
   title: string
@@ -53,11 +57,13 @@ export interface Vote {
 // Financial types
 export interface Transaction {
   id: string
-  description: string
+  categoryId: string
+  userId: string
   date: string
-  category: Category
-  type: "income" | "expense"
-  value: number
+  type: "credit" | "debit"
+  description: string
+  amount: number
+  category?: Category
   createdAt?: string
   updatedAt?: string
 }
@@ -68,11 +74,43 @@ export interface Category {
   description?: string
   icon: string
   color: string
+  userId?: string
   itemCount?: number
   totalAmount?: number
   createdAt?: string
   updatedAt?: string
 }
 
-export type TransactionType = "income" | "expense"
+export type TransactionType = "credit" | "debit"
+
+// GraphQL Input Types
+export interface CreateCategoryInput {
+  title: string
+  description?: string
+  icon: string
+  color: string
+}
+
+export interface UpdateCategoryInput {
+  title?: string
+  description?: string
+  icon?: string
+  color?: string
+}
+
+export interface CreateTransactionInput {
+  categoryId: string
+  description: string
+  date: string
+  type: "credit" | "debit"
+  amount: number
+}
+
+export interface UpdateTransactionInput {
+  categoryId?: string
+  description?: string
+  date?: string
+  type?: "credit" | "debit"
+  amount?: number
+}
 

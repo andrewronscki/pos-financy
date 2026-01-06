@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useMutation } from "@apollo/client/react"
 import {
   Dialog,
   DialogContent,
@@ -11,10 +12,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CategoryIcon } from "@/lib/category-icons"
 import { categoryBaseColors } from "@/lib/category-colors"
+import { CREATE_CATEGORY } from "@/lib/graphql/mutations/Categories"
+import { LIST_CATEGORIES } from "@/lib/graphql/queries/Categories"
+import { toast } from "sonner"
 
-interface CreateCategoryDialogProps {
+export interface CreateCategoryDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
 }
 
 const availableIcons = [
@@ -45,20 +50,44 @@ const availableColors = Object.entries(categoryBaseColors).map(([name, value]) =
 export function CreateCategoryDialog({
   open,
   onOpenChange,
+  onSuccess,
 }: CreateCategoryDialogProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [selectedIcon, setSelectedIcon] = useState("briefcase-business")
   const [selectedColor, setSelectedColor] = useState("green")
 
-  const handleSave = () => {
-    // TODO: Implementar salvamento
-    onOpenChange(false)
-    // Reset form
-    setTitle("")
-    setDescription("")
-    setSelectedIcon("briefcase-business")
-    setSelectedColor("green")
+  const [createCategory, { loading }] = useMutation(CREATE_CATEGORY, {
+    refetchQueries: [{ query: LIST_CATEGORIES }],
+    onCompleted: () => {
+      toast.success("Categoria criada com sucesso!")
+      onOpenChange(false)
+      // Reset form
+      setTitle("")
+      setDescription("")
+      setSelectedIcon("briefcase-business")
+      setSelectedColor("green")
+      onSuccess?.()
+    },
+    onError: (error) => {
+      toast.error("Erro ao criar categoria: " + error.message)
+    },
+  })
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      toast.error("O título é obrigatório")
+      return
+    }
+
+    const data = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      icon: selectedIcon,
+      color: selectedColor,
+    }
+
+    await createCategory({ variables: { data } })
   }
 
   return (
@@ -153,8 +182,9 @@ export function CreateCategoryDialog({
           <Button
             className="w-full bg-brand-base hover:bg-brand-dark rounded-lg text-base font-medium text-white"
             onClick={handleSave}
+            disabled={loading}
           >
-            Salvar
+            {loading ? "Salvando..." : "Salvar"}
           </Button>
         </div>
       </DialogContent>

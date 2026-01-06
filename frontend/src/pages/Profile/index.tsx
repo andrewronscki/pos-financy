@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useMutation } from "@apollo/client/react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { InputField } from "@/components/ui/input-field"
@@ -6,12 +7,47 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { User, Mail, LogOut } from "lucide-react"
 import { useAuthStore } from "@/stores/auth"
 import { useNavigate } from "react-router-dom"
+import { UPDATE_USER } from "@/lib/graphql/mutations/User"
+import { UpdateUserInput } from "@/types"
+import { toast } from "sonner"
+
+type UpdateUserMutationData = {
+  updateUser: {
+    id: string
+    name: string
+    email: string
+  }
+}
 
 export function Profile() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, updateUser } = useAuthStore()
   const navigate = useNavigate()
   const [name, setName] = useState(user?.name || "")
   const [email] = useState(user?.email || "")
+
+  // Atualizar o nome quando o usuário mudar
+  useEffect(() => {
+    if (user?.name) {
+      setName(user.name)
+    }
+  }, [user?.name])
+
+  const [updateUserMutation, { loading }] = useMutation<UpdateUserMutationData>(UPDATE_USER, {
+    onCompleted: (data) => {
+      if (data?.updateUser) {
+        // Atualizar o store com os novos dados do usuário
+        updateUser({
+          id: data.updateUser.id,
+          name: data.updateUser.name,
+          email: data.updateUser.email,
+        })
+        toast.success("Perfil atualizado com sucesso!")
+      }
+    },
+    onError: (error) => {
+      toast.error("Erro ao atualizar perfil: " + error.message)
+    },
+  })
 
   const getInitials = (name?: string) => {
     if (!name) return "U"
@@ -22,9 +58,32 @@ export function Profile() {
     return name.charAt(0).toUpperCase()
   }
 
-  const handleSave = () => {
-    // TODO: Implementar atualização do perfil
-    console.log("Salvando alterações...", { name })
+  const handleSave = async () => {
+    if (!user?.id) {
+      toast.error("Usuário não encontrado")
+      return
+    }
+
+    if (!name.trim()) {
+      toast.error("O nome é obrigatório")
+      return
+    }
+
+    if (name.trim() === user.name) {
+      toast.info("Nenhuma alteração foi feita")
+      return
+    }
+
+    const data: UpdateUserInput = {
+      name: name.trim(),
+    }
+
+    await updateUserMutation({
+      variables: {
+        data,
+        id: user.id,
+      },
+    })
   }
 
   const handleLogout = () => {
@@ -84,8 +143,9 @@ export function Profile() {
                 <Button
                   className="w-full bg-brand-base hover:bg-brand-dark"
                   onClick={handleSave}
+                  disabled={loading}
                 >
-                  Salvar alterações
+                  {loading ? "Salvando..." : "Salvar alterações"}
                 </Button>
               </div>
 
