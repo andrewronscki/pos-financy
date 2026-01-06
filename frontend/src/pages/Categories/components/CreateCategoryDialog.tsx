@@ -7,8 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { InputField } from "@/components/ui/input-field"
-import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CategoryIcon } from "@/lib/category-icons"
 import { categoryBaseColors } from "@/lib/category-colors"
@@ -66,74 +65,93 @@ export function CreateCategoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nova categoria</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base font-semibold text-gray-800">
+            Nova categoria
+          </DialogTitle>
+          <DialogDescription className="text-sm font-normal text-gray-600">
             Organize suas transações com categorias
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <InputField
-            id="title"
-            label="Título"
-            placeholder="Ex. Alimentação"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              placeholder="Descrição da categoria"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-            <p className="text-xs text-gray-500">Opcional</p>
-          </div>
-
-          <div className="space-y-3">
-            <Label>Ícone</Label>
-            <div className="grid grid-cols-5 gap-2">
-              {availableIcons.map((icon) => (
-                <button
-                  key={icon}
-                  type="button"
-                  onClick={() => setSelectedIcon(icon)}
-                  className={`w-10 h-10 rounded-md border-2 flex items-center justify-center transition-colors ${
-                    selectedIcon === icon
-                      ? "border-brand-base bg-green-50"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
-                >
-                  <CategoryIcon iconName={icon} className="h-5 w-5 text-gray-500" />
-                </button>
-              ))}
+        <div className="py-4">
+          <div className="mb-6">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-sm font-medium text-gray-700">
+                Título
+              </Label>
+              <Input
+                id="title"
+                placeholder="Ex. Alimentação"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Label>Cor</Label>
-            <div className="flex gap-2 flex-wrap">
-              {availableColors.map((color) => (
-                <button
-                  key={color.name}
-                  type="button"
-                  onClick={() => setSelectedColor(color.name)}
-                  className={`w-10 h-10 rounded-md border-2 transition-all ${
-                    selectedColor === color.name
-                      ? "border-brand-base scale-110"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
-                  style={{ backgroundColor: color.value }}
-                />
-              ))}
+          <div className="mb-4">
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                Descrição
+              </Label>
+              <Input
+                id="description"
+                placeholder="Descrição da categoria"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+              <p className="text-xs font-normal text-gray-500 mt-2">Opcional</p>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Ícone</Label>
+              <div className="grid grid-cols-8 gap-2">
+                {availableIcons.map((icon) => (
+                  <button
+                    key={icon}
+                    type="button"
+                    onClick={() => setSelectedIcon(icon)}
+                    className={`w-[42px] h-[42px] rounded-lg border-2 flex items-center justify-center transition-colors ${
+                      selectedIcon === icon
+                        ? "border-brand-base bg-green-50"
+                        : "border-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    <CategoryIcon iconName={icon} className="h-5 w-5 text-gray-500" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Cor</Label>
+              <div className="flex gap-2">
+                {availableColors.map((color) => (
+                  <button
+                    key={color.name}
+                    type="button"
+                    onClick={() => setSelectedColor(color.name)}
+                    className={`w-[50px] h-[30px] rounded-lg border-2 flex items-center justify-center transition-all ${
+                      selectedColor === color.name
+                        ? "border-brand-base"
+                        : "border-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    <div
+                      className="w-10 h-5 rounded"
+                      style={{ backgroundColor: color.value }}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <Button
-            className="w-full bg-brand-base hover:bg-brand-dark"
+            className="w-full bg-brand-base hover:bg-brand-dark rounded-lg text-base font-medium text-white"
             onClick={handleSave}
           >
             Salvar

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { InputField } from "@/components/ui/input-field"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { User, Mail, ArrowRight } from "lucide-react"
+import { User, Mail, LogOut } from "lucide-react"
 import { useAuthStore } from "@/stores/auth"
 import { useNavigate } from "react-router-dom"
 
@@ -34,62 +34,73 @@ export function Profile() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-2xl mx-auto px-6">
+      <div className="mx-auto px-6" style={{ maxWidth: "448px" }}>
         <Card className="rounded-lg shadow-md">
           <CardContent className="p-8">
             {/* Avatar and User Info */}
             <div className="flex flex-col items-center mb-8">
-              <Avatar className="w-24 h-24 mb-4">
-                <AvatarFallback className="bg-gray-300 text-gray-700 text-2xl">
+              <Avatar className="w-16 h-16 mb-6">
+                <AvatarFallback className="bg-gray-300 text-gray-800 text-2xl font-medium">
                   {getInitials(user?.name)}
                 </AvatarFallback>
               </Avatar>
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">
+              <h2 className="text-xl font-semibold text-gray-800 mb-0.5">
                 {user?.name || "Usuário"}
               </h2>
-              <p className="text-gray-600">{user?.email}</p>
+              <p className="text-base font-normal text-gray-500">{user?.email}</p>
             </div>
 
             {/* Form */}
-            <div className="space-y-6">
-              <InputField
-                id="name"
-                label="Nome completo"
-                icon={User}
-                placeholder="Seu nome completo"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+            <div>
+              {/* Divider */}
+              <div className="border-t border-gray-200 my-8" />
 
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <InputField
-                  id="email"
-                  label="E-mail"
-                  icon={Mail}
-                  placeholder="seu@email.com"
-                  value={email}
-                  disabled
+                  id="name"
+                  label="Nome completo"
+                  icon={User}
+                  placeholder="Seu nome completo"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
-                <p className="text-xs text-gray-500">
-                  O e-mail não pode ser alterado
-                </p>
+
+                <div className="space-y-2">
+                  <InputField
+                    id="email"
+                    label="E-mail"
+                    icon={Mail}
+                    placeholder="seu@email.com"
+                    value={email}
+                    disabled
+                  />
+                  <p className="text-xs font-normal text-gray-500">
+                    O e-mail não pode ser alterado
+                  </p>
+                </div>
               </div>
 
-              <Button
-                className="w-full bg-brand-base hover:bg-brand-dark"
-                onClick={handleSave}
-              >
-                Salvar alterações
-              </Button>
+              <div className="mt-8">
+                <Button
+                  className="w-full bg-brand-base hover:bg-brand-dark"
+                  onClick={handleSave}
+                >
+                  Salvar alterações
+                </Button>
+              </div>
 
-              <Button
-                variant="outline"
-                className="w-full border-red-500 text-red-600 hover:bg-red-50"
-                onClick={handleLogout}
-              >
-                <ArrowRight className="h-4 w-4 mr-2" />
-                Sair da conta
-              </Button>
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-[18px] w-[18px] mr-2 text-danger" />
+                  <span className="text-base font-medium text-gray-700">
+                    Sair da conta
+                  </span>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

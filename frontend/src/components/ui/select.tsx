@@ -197,7 +197,7 @@ const SelectField = React.forwardRef<HTMLButtonElement, SelectFieldProps>(
 
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={id} variant={labelVariant}>
+        <Label htmlFor={id} variant={labelVariant} className={labelVariant === "default" ? "text-gray-700" : undefined}>
           {label}
         </Label>
         <Select
